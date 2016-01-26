@@ -3,7 +3,7 @@
 const char* ssid     = "Harison";
 const char* password = "8867396716";
  
-const char* host = "www.amitray.xyz";
+const char* host = "www.amitray.xyz";//change this site url to yours.
  
 void setup() {
   Serial.begin(115200);
@@ -47,7 +47,7 @@ void loop() {
   }
   
   // We now create a URI for the request
-  String url = "/hello.html";
+  String url = "/hello.html";    //Change the webpage to yours.
   Serial.print("Requesting URL: ");
   Serial.println(url);
   

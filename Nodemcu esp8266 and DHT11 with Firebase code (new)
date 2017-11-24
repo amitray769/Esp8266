@@ -29,8 +29,8 @@ uint32_t delayMS;
 // Set these to run example.
 #define FIREBASE_HOST "esp8266-2a68e.firebaseio.com"
 #define FIREBASE_AUTH "V7joPTpgp2AXS4HAmokYlI4AmpIGINeOzJk0lLLX"
-#define WIFI_SSID "ToWaSo"
-#define WIFI_PASSWORD "towaso@ciie"
+#define WIFI_SSID "AndroidAP"
+#define WIFI_PASSWORD "hfvg5656"
 
 void setup() {
   
@@ -82,8 +82,6 @@ void setup() {
 int n = 0;
 
 void loop() {
-float temp;
-float humidity;
  // Delay between measurements.
   delay(delayMS);
   // Get temperature event and print its value.
@@ -96,8 +94,21 @@ float humidity;
     Serial.print("Temperature: ");
     Serial.print(event.temperature);
     Serial.println(" *C");
-   temp= event.temperature;
-  }
+   float temp= event.temperature;
+   Serial.println("temp variable value: ");
+   Serial.print(temp);
+ 
+   // set value
+   Firebase.setFloat("Temperature", temp);
+   // handle error
+   if (Firebase.failed()) {
+       Serial.print("setting /number failed:");
+       Serial.println(Firebase.error());  
+       return;
+   } Serial.println("Temp from Firebase: ");
+     Serial.print(Firebase.getFloat("Temperature"));
+    delay(1000);
+   }
   // Get humidity event and print its value.
   dht.humidity().getEvent(&event);
   if (isnan(event.relative_humidity)) {
@@ -107,37 +118,24 @@ float humidity;
     Serial.print("Humidity: ");
     Serial.print(event.relative_humidity);
     Serial.println("%");
-    humidity= event.relative_humidity; 
-  }
+    float humidity= event.relative_humidity; 
 
-  Serial.println("temp variable value: ");
-  Serial.print(temp);
-  Serial.println("Humidity variable value ");
-  Serial.print(humidity);
-  // set value
-  Firebase.setFloat("Temperature", temp);
-  // handle error
-  if (Firebase.failed()) {
-      Serial.print("setting /number failed:");
-      Serial.println(Firebase.error());  
-      return;
-  } Serial.println("Temp from Firebase: ");
-   Serial.print(Firebase.getFloat("Temperature"));
-  delay(1000);
+    // update value
+    Firebase.setFloat("Humidity", humidity);
+    // handle error
+    if (Firebase.failed()) {
+        Serial.print("setting /number failed:");
+        Serial.println(Firebase.error());  
+        return;
+    }
+    Serial.println("Humidity from Firebase: ");
+    Serial.print(Firebase.getFloat("Humidity"));
+    delay(1000);
+
+     Serial.println("Humidity variable value ");
+     Serial.print(humidity);
+  }
   
-  // update value
-  Firebase.setFloat("Humidity", humidity);
-  // handle error
-  if (Firebase.failed()) {
-      Serial.print("setting /number failed:");
-      Serial.println(Firebase.error());  
-      return;
-  }
-  Serial.println("Humidity from Firebase: ");
-   Serial.print(Firebase.getFloat("Humidity"));
-  delay(1000);
-
-
   // append a new value to /logs
   Firebase.setInt("logs", n++);
   // handle error

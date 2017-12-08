@@ -1,0 +1,202 @@
+
+// Depends on the following Arduino libraries:
+// - Adafruit Unified Sensor Library: https://github.com/adafruit/Adafruit_Sensor
+// - DHT Sensor Library: https://github.com/adafruit/DHT-sensor-library
+
+#include <Adafruit_Sensor.h>
+#include <DHT.h>
+#include <DHT_U.h>
+
+
+#define DHTPIN            0         // Pin which is connected to the DHT sensor.
+
+// Uncomment the type of sensor in use:
+#define DHTTYPE           DHT11     // DHT 11 
+//#define DHTTYPE           DHT22     // DHT 22 (AM2302)
+//#define DHTTYPE           DHT21     // DHT 21 (AM2301)
+
+// See guide for details on sensor wiring and usage:
+//   https://learn.adafruit.com/dht/overview
+
+DHT_Unified dht(DHTPIN, DHTTYPE);
+
+uint32_t delayMS;
+
+//DS18B20 liquid Temperature sensor code section started
+#include <OneWire.h>
+#include <DallasTemperature.h>
+ 
+// Data wire is plugged into pin 2 on the Arduino
+#define ONE_WIRE_BUS 2
+ 
+// Setup a oneWire instance to communicate with any OneWire devices 
+// (not just Maxim/Dallas temperature ICs)
+OneWire oneWire(ONE_WIRE_BUS);
+ 
+// Pass our oneWire reference to Dallas Temperature.
+DallasTemperature ds18b20(&oneWire);
+
+//DS1B20 header code section Ends here
+ 
+
+// FirebaseDemo_ESP8266 is a sample that demo the different functions
+// of the FirebaseArduino API.
+
+#include <ESP8266WiFi.h>
+#include <FirebaseArduino.h>
+
+// Set these to run example.
+#define FIREBASE_HOST "esp8266-2a68e.firebaseio.com"
+#define FIREBASE_AUTH "V7joPTpgp2AXS4HAmokYlI4AmpIGINeOzJk0lLLX"
+#define WIFI_SSID "ToWaSo"
+#define WIFI_PASSWORD "towaso@ciie"
+
+void setup() {
+  
+  Serial.begin(115200);
+  Serial.println("Dallas Temperature IC Control Library Demo");
+
+  //DS18B20 Serial begin started
+ // start serial port
+  ds18b20.begin();
+  
+  // connect to wifi.
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  Serial.print("connecting");
+  while (WiFi.status() != WL_CONNECTED) {
+    Serial.print(".");
+    delay(500);
+  }
+  Serial.println();
+  Serial.print("connected: ");
+  Serial.println(WiFi.localIP());
+
+//DHT one time setup
+    dht.begin();
+  Serial.println("DHTxx Unified Sensor Example");
+  // Print temperature sensor details.
+  sensor_t sensor;
+  dht.temperature().getSensor(&sensor);
+  Serial.println("------------------------------------");
+  Serial.println("Temperature");
+  Serial.print  ("Sensor:       "); Serial.println(sensor.name);
+  Serial.print  ("Driver Ver:   "); Serial.println(sensor.version);
+  Serial.print  ("Unique ID:    "); Serial.println(sensor.sensor_id);
+  Serial.print  ("Max Value:    "); Serial.print(sensor.max_value); Serial.println(" *C");
+  Serial.print  ("Min Value:    "); Serial.print(sensor.min_value); Serial.println(" *C");
+  Serial.print  ("Resolution:   "); Serial.print(sensor.resolution); Serial.println(" *C");  
+  Serial.println("------------------------------------");
+  // Print humidity sensor details.
+  dht.humidity().getSensor(&sensor);
+  Serial.println("------------------------------------");
+  Serial.println("Humidity");
+  Serial.print  ("Sensor:       "); Serial.println(sensor.name);
+  Serial.print  ("Driver Ver:   "); Serial.println(sensor.version);
+  Serial.print  ("Unique ID:    "); Serial.println(sensor.sensor_id);
+  Serial.print  ("Max Value:    "); Serial.print(sensor.max_value); Serial.println("%");
+  Serial.print  ("Min Value:    "); Serial.print(sensor.min_value); Serial.println("%");
+  Serial.print  ("Resolution:   "); Serial.print(sensor.resolution); Serial.println("%");  
+  Serial.println("------------------------------------");
+  // Set delay between sensor readings based on sensor details.
+  delayMS = sensor.min_delay / 1000;
+  
+  Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
+}
+
+int n = 0;
+
+void loop() {
+
+  //*******JSON VARIABLE CREATION STARTS HERE********
+   // StaticJsonBuffer allocates memory on the stack, it can be
+  // replaced by DynamicJsonBuffer which allocates in the heap.
+    // Memory pool for JSON object tree..
+  // Inside the brackets, 200 is the size of the pool in bytes,
+  // If the JSON object is more complex, you need to increase that value.
+  // DynamicJsonBuffer  jsonBuffer(200);
+   StaticJsonBuffer<200> jsonBuffer;
+  // JSON input string.
+  // It's better to use a char[] as shown here.
+  // If you use a const char* or a String, ArduinoJson will
+  // have to make a copy of the input in the JsonBuffer.
+   JsonObject& root = jsonBuffer.createObject();
+  //********JSON VARIABLE CREATION ENDS HERE**********
+
+  //******DHT11 SECTION STARTS HERE********
+ // Delay between measurements.
+  delay(delayMS);
+  // Get temperature event and print its value.
+  sensors_event_t event;  
+  dht.temperature().getEvent(&event);
+  if (isnan(event.temperature)) {
+    Serial.println("Error reading temperature!");
+  }
+  else {
+    Serial.print("Temperature: ");
+    Serial.print(event.temperature);
+    Serial.println(" *C");
+   root["Temperature"]= event.temperature;
+ 
+    Serial.println("Temp from Firebase: ");
+     Serial.print(Firebase.getFloat("A/Temperature"));
+    delay(2000);
+   }
+  // Get humidity event and print its value.
+  dht.humidity().getEvent(&event);
+  if (isnan(event.relative_humidity)) {
+    Serial.println("Error reading humidity!");
+  }
+  else {
+    Serial.print("Humidity: ");
+    Serial.print(event.relative_humidity);
+    Serial.println("%");
+    root["Humidity"]= event.relative_humidity; 
+
+    
+    Serial.println("Humidity from Firebase: ");
+    Serial.print(Firebase.getFloat("A/Humidity"));
+    delay(2000);
+
+  }
+    //******DHT11 SECTION ENDS HERE********
+
+ //*****DS18B20 TEMPERATURE READING SECTION STARTED*******
+  // call ds18b20.requestTemperatures() to issue a global temperature
+  // request to all devices on the bus
+  
+  Serial.println(" Requesting temperatures...");
+  ds18b20.requestTemperatures(); // Send the command to get temperatures
+  Serial.println("DONE");
+
+  Serial.print("Temperature is: ");
+   float ltemp= ds18b20.getTempCByIndex(0); // Why "byIndex"? 
+   Serial.print(ltemp);
+   //creating a variable ltemp
+  root["Liquid_Temperature"]= ltemp;
+    // You can have more than one IC on the same bus. 
+    // 0 refers to the first IC on the wire
+    //******DS18B20 TEMPERATURE READING SECTION ENDS HERE******
+    
+  //*******SENDING JSON TO FIREBASE STARTS HERE**********
+   Firebase.set( "A/",root);
+
+   // handle error
+  if (Firebase.failed()) {
+      Serial.print("Sending Json to firebase failed");
+      Serial.println(Firebase.error());  
+      return;
+  }
+  delay(2000);
+  //*******SENDING JSON TO FIREBASE ENDS HERE**********
+  
+  // append a new value to /logs
+  Firebase.setInt("A/logs", n++);
+  // handle error
+  if (Firebase.failed()) {
+      Serial.print("pushing /logs failed:");
+      Serial.println(Firebase.error());  
+      return;
+  }
+  Serial.print("pushed: /logs/");
+  delay(2000);
+}

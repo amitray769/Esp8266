@@ -1,0 +1,68 @@
+
+
+#include <ESP8266WiFi.h>
+#include <FirebaseArduino.h>
+
+// Set these to run example.
+#define FIREBASE_HOST "homeautomation-e3507.firebaseio.com"
+#define FIREBASE_AUTH "3H8JGsp31C0EVWtYPkRogaPaVYvis1A48s91wA1N"
+#define WIFI_SSID "ToWaSo"
+#define WIFI_PASSWORD "towaso@ciie"
+int relaypin=14;
+boolean air;
+void setup() {
+  pinMode(relaypin, OUTPUT);
+  Serial.begin(115200);
+
+  // connect to wifi.
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  Serial.print("connecting");
+  while (WiFi.status() != WL_CONNECTED) {
+    Serial.print(".");
+    delay(500);
+  }
+  Serial.println();
+  Serial.print("connected: ");
+  Serial.println(WiFi.localIP());
+  
+  Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
+}
+
+int n = 0;
+
+void loop() {
+
+  
+  // set bool value
+  air=Firebase.getBool("Devices/A/air");
+  // handle error
+  if (Firebase.failed()) {
+      Serial.print("getting /air failed:");
+      Serial.println(Firebase.error());  
+      return;
+  }
+  Serial.println(air);
+  if(air==true)
+  {
+  digitalWrite(relaypin, HIGH);   // turn the Relay on (HIGH is the voltage level)
+  Serial.println("Relay On");
+  }
+  else
+  {
+  digitalWrite(relaypin, LOW);    // turn the Relay off by making the voltage LOW
+  Serial.println("Relay Off");
+  }
+ 
+
+  // append a new value to /logs
+  String name = Firebase.pushInt("logs", n++);
+  // handle error
+  if (Firebase.failed()) {
+      Serial.print("pushing /logs failed:");
+      Serial.println(Firebase.error());  
+      return;
+  }
+  Serial.print("pushed: /logs/");
+  Serial.println(name);
+  delay(1000);
+}

@@ -1,0 +1,96 @@
+
+
+#include <ESP8266WiFi.h>
+#include <FirebaseArduino.h>
+
+#define FIREBASE_HOST "homeautomation-e3507.firebaseio.com"
+#define FIREBASE_AUTH "3H8JGsp31C0EVWtYPkRogaPaVYvis1A48s91wA1N"
+#define WIFI_SSID "ToWaSo"
+#define WIFI_PASSWORD "towaso@ciie"
+int relaypin_air=14;
+int relaypin_light=12;  
+int relaypin_motor=13;
+boolean air,light,motor;
+void setup() {
+  pinMode(relaypin_air, OUTPUT);
+  pinMode(relaypin_light, OUTPUT);
+  pinMode(relaypin_motor, OUTPUT);
+  Serial.begin(115200);
+
+  // connect to wifi.
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  Serial.print("connecting");
+  while (WiFi.status() != WL_CONNECTED) {
+    Serial.print(".");
+    delay(500);
+  }
+  Serial.println();
+  Serial.print("connected: ");
+  Serial.println(WiFi.localIP());
+  
+  Firebase.begin(FIREBASE_HOST, FIREBASE_AUTH);
+}
+
+int n = 0;
+
+void loop() {
+   
+  // set bool value
+  air=Firebase.getBool("Devices/A/air");
+  // handle error
+  if (Firebase.failed()) {
+      Serial.print("getting /air failed:");
+      Serial.println(Firebase.error());  
+      return;
+  }
+   // set bool value
+  light=Firebase.getBool("Devices/A/light");
+  // handle error
+  if (Firebase.failed()) {
+      Serial.print("getting /light failed:");
+      Serial.println(Firebase.error());  
+      return;
+  }
+   // set bool value
+  motor=Firebase.getBool("Devices/A/motor");
+  // handle error
+  if (Firebase.failed()) {
+      Serial.print("getting /motor failed:");
+      Serial.println(Firebase.error());  
+      return;
+  }
+  Serial.println(air);
+  if(air==true)
+  {
+  digitalWrite(relaypin_air, HIGH);   // turn the Relay on (HIGH is the voltage level)
+  Serial.println("Relay Air On");
+  }
+  else
+  {
+  digitalWrite(relaypin_air, LOW);    // turn the Relay off by making the voltage LOW
+  Serial.println("Relay  Air Off");
+  }
+
+   if(light==true)
+  {
+  digitalWrite(relaypin_light, HIGH);   // turn the Relay on (HIGH is the voltage level)
+  Serial.println("Relay Light On");
+  }
+  else
+  {
+  digitalWrite(relaypin_light, LOW);    // turn the Relay off by making the voltage LOW
+  Serial.println("Relay Light Off");
+  }
+
+  if(motor==true)
+  {
+  digitalWrite(relaypin_motor, HIGH);   // turn the Relay on (HIGH is the voltage level)
+  Serial.println("Relay Motor On");
+  }
+  else
+  {
+  digitalWrite(relaypin_motor, LOW);    // turn the Relay off by making the voltage LOW
+  Serial.println("Relay Motor Off");
+  }
+ 
+}
